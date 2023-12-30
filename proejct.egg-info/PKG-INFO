@@ -6,7 +6,24 @@ Home-page: UNKNOWN
 Author: wonchul
 Author-email: onedang22@gmail.com
 License: UNKNOWN
-Description: UNKNOWN
+Description: # Deep Learning framework
+        
+        - train/val
+        - test
+        - export
+        
+        ## Classification
+        
+        #### Models
+        
+        - torchvision 
+            - ResNet
+        
+        ## Segmentation
+        
+        ## Detection
+        
+        
 Platform: UNKNOWN
 Requires-Python: >=3.9
 Description-Content-Type: text/makrdown

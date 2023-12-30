@@ -1,7 +1,18 @@
 import torch.nn as nn
+import torchvision 
 
 class TorchvisionModel(nn.Module):
-    def __init__(self, in_channels=3):
+    def __init__(self, model_name, in_channels, num_classes, pretrained=True):
         super().__init__()
+        self.model = torchvision.models.__dict__[model_name](pretrained=pretrained)
 
-        self.model = 
+        self.model.conv1 = nn.Conv2d(in_channels, self.model.conv1.out_channels,kernel_size=7, stride=2, padding=3, bias=False)
+        self.model.fc = nn.Linear(self.model.fc.in_features, num_classes)
+
+    def forward(self, x):
+        return self.model(x)
+
+if __name__ == '__main__':
+    model = TorchvisionModel('resnet18', 1, 10)
+
+

@@ -18,13 +18,7 @@ from train import train_one_epoch
 from val import evaluate
 import torch.nn as nn
 from torchsummary import summary
-
-# class TorchvisionModel(nn.Module):
-#     def __init__(self, in_channels, num_classes):
-#         super().__init__()
-
-#         self.model = torchvision.models.get_model(args.model, weights=args.weights, num_classes=num_classes)
-#         self.model.conv1 = nn.Conv2d(in_channels, 64 kernel_size=7, stride=2, padding=3, bias=False)
+from my_project.src.tasks.classification.src.models.torchvision_model import TorchvisionModel
 
 
 def _get_cache_path(filepath):
@@ -187,16 +181,17 @@ def main(args):
         sampler=test_sampler, num_workers=args.workers, pin_memory=True,
     )
 
-    print("Creating model")
-    
-    model = torchvision.models.get_model(args.model, weights=args.weights, num_classes=num_classes)
-    print(model)
-    model.conv1 = nn.Conv2d(1, 64 ,kernel_size=7, stride=2, padding=3, bias=False)
-    num_ftrs = model.fc.in_features 
-    model.fc = nn.Linear(num_ftrs, num_classes)
 
-        
+    print("Creating model")
+    model = TorchvisionModel(args.model, args.in_channels, args.num_classes)
+    # model = torchvision.models.get_model(args.model, weights=args.weights, num_classes=num_classes)
+    # print(model)
+    # model.conv1 = nn.Conv2d(1, 64 ,kernel_size=7, stride=2, padding=3, bias=False)
+    # num_ftrs = model.fc.in_features 
+    # model.fc = nn.Linear(num_ftrs, num_classes)
+
     model.to(device)
+        
 
     if args.distributed and args.sync_bn:
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
@@ -346,11 +341,13 @@ def get_args_parser(add_help=True):
     parser = argparse.ArgumentParser(description="PyTorch Classification Training", add_help=add_help)
 
     parser.add_argument("--dataset", default="mnist", type=str)
+    parser.add_argument("--num-classes", default=10, type=int)
+    parser.add_argument("--in-channels", default=1, type=int)
     parser.add_argument("--data-path", default="/datasets01/imagenet_full_size/061417/", type=str, help="dataset path")
     parser.add_argument("--model", default="resnet18", type=str, help="model name")
     parser.add_argument("--device", default="cuda", type=str, help="device (Use cuda or cpu Default: cuda)")
     parser.add_argument(
-        "-b", "--batch-size", default=32, type=int, help="images per gpu, the total batch size is $NGPU x batch_size"
+        "-b", "--batch-size", default=2, type=int, help="images per gpu, the total batch size is $NGPU x batch_size"
     )
     parser.add_argument("--epochs", default=10, type=int, metavar="N", help="number of total epochs to run")
     parser.add_argument(
