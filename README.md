@@ -6,6 +6,11 @@
 
 ## Classification
 
+#### Models
+
+- torchvision 
+    - ResNet
+
 ## Segmentation
 
 ## Detection
