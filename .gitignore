@@ -1,0 +1,8 @@
+### cache
+__pycache__
+
+### outputs
+outputs
+*.pth
+*.pt 
+*.h5
