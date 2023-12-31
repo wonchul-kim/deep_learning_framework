@@ -2,7 +2,7 @@ import math
 from typing import Tuple
 
 import torch
-from my_project.src.tasks.data.augment.presets import get_module
+from dl_framework.src.tasks.data.augment.presets import get_module
 from torch import Tensor
 from torchvision.transforms import functional as F
 

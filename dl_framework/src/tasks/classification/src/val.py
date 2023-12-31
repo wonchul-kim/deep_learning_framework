@@ -4,7 +4,7 @@ import torch
 import torch.utils.data
 import utils
 
-from my_project.utils.metrics import MetricLogger, accuracy, reduce_across_processes
+from dl_framework.utils.metrics import MetricLogger, accuracy, reduce_across_processes
 
 
 def val(model, criterion, data_loader, device, print_freq=100, log_suffix=""):

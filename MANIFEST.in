@@ -3,4 +3,4 @@ include requirements.txt
 include LICENSE
 include setup.py
 include tests/*.py 
-recursive-include my_project *.yaml
+recursive-include dl_framework *.yaml

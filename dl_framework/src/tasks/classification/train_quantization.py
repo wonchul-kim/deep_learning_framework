@@ -9,7 +9,7 @@ import torch.utils.data
 import torchvision
 import utils
 from torch import nn
-from my_project.src.tasks.classification.src.train import val, load_data, train_one_epoch
+from dl_framework.src.tasks.classification.src.train import val, load_data, train_one_epoch
 
 
 def main(args):

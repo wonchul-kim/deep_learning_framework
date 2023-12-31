@@ -7,16 +7,16 @@ import torch.utils.data
 
 from torch import nn
 from torch.utils.data.dataloader import default_collate
-from my_project.src.tasks.data.augment.transforms import get_mixup_cutmix
-from my_project.src.tasks.classification.src.train import train_one_epoch
-from my_project.src.tasks.classification.src.val import val
+from dl_framework.src.tasks.data.augment.transforms import get_mixup_cutmix
+from dl_framework.src.tasks.classification.src.train import train_one_epoch
+from dl_framework.src.tasks.classification.src.val import val
 import torch.nn as nn
 
-from my_project.src.tasks.classification.src.models.torchvision_model import TorchvisionModel
-from my_project.src.tasks.classification.src.dataset import load_data
-from my_project.utils.general import mkdir
-from my_project.utils.torch_utils import *
-from my_project.src.tasks.classification.parse import get_args_parser
+from dl_framework.src.tasks.classification.src.models.torchvision_model import TorchvisionModel
+from dl_framework.src.tasks.classification.src.dataset import load_data
+from dl_framework.utils.general import mkdir
+from dl_framework.utils.torch_utils import *
+from dl_framework.src.tasks.classification.parse import get_args_parser
 
 def get_dataset(args):
     train_dir = os.path.join(args.data_path, "train")

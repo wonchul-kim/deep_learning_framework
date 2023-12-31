@@ -4,7 +4,7 @@ from collections import defaultdict, deque, OrderedDict
 
 import torch
 import torch.distributed as dist
-from my_project.utils.torch_utils import *
+from dl_framework.utils.torch_utils import *
 
 class SmoothedValue:
     """Track a series of values and provide access to smoothed values over a

@@ -6,9 +6,9 @@ import torch
 import torchvision
 import torchvision.transforms
 
-from my_project.src.tasks.classification.src.sampler import RASampler
-import my_project.src.tasks.data.augment.presets as presets
-import my_project.src.tasks.classification.utils as utils
+from dl_framework.src.tasks.classification.src.sampler import RASampler
+import dl_framework.src.tasks.data.augment.presets as presets
+import dl_framework.src.tasks.classification.utils as utils
 from torchvision.transforms.functional import InterpolationMode
 
 def _get_cache_path(filepath):

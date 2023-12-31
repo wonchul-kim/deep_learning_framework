@@ -4,7 +4,7 @@ import torch
 import torch.utils.data
 from torch import nn
 
-from my_project.utils.metrics import MetricLogger, SmoothedValue, accuracy
+from dl_framework.utils.metrics import MetricLogger, SmoothedValue, accuracy
 
 def train_one_epoch(model, criterion, optimizer, data_loader, device, epoch, args, model_ema=None, scaler=None):
     model.train()
