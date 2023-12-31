@@ -1,3 +1,5 @@
+torchrun --nproc_per_node=1 main.py --model resnet18 --lr 1e-2
+
 # Image classification reference training scripts
 
 This folder contains reference training scripts for image classification.

@@ -4,9 +4,12 @@ import torch
 import torch.utils.data
 import utils
 
+from my_project.utils.metrics import MetricLogger, accuracy, reduce_across_processes
+
+
 def evaluate(model, criterion, data_loader, device, print_freq=100, log_suffix=""):
     model.eval()
-    metric_logger = utils.MetricLogger(delimiter="  ")
+    metric_logger = MetricLogger(delimiter="  ")
     header = f"Test: {log_suffix}"
 
     num_processed_samples = 0
@@ -17,7 +20,7 @@ def evaluate(model, criterion, data_loader, device, print_freq=100, log_suffix="
             output = model(image)
             loss = criterion(output, target)
 
-            acc1, acc5 = utils.accuracy(output, target, topk=(1, 5))
+            acc1, acc5 = accuracy(output, target, topk=(1, 5))
             # FIXME need to take into account that the datasets
             # could have been padded in distributed setup
             batch_size = image.shape[0]
@@ -27,7 +30,7 @@ def evaluate(model, criterion, data_loader, device, print_freq=100, log_suffix="
             num_processed_samples += batch_size
     # gather the stats from all processes
 
-    num_processed_samples = utils.reduce_across_processes(num_processed_samples)
+    num_processed_samples = reduce_across_processes(num_processed_samples)
     if (
         hasattr(data_loader.dataset, "__len__")
         and len(data_loader.dataset) != num_processed_samples

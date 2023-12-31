@@ -1,170 +1,39 @@
 import datetime
 import os
 import time
-import warnings
 
-import presets
 import torch
 import torch.utils.data
-import torchvision
-import torchvision.transforms
 import utils
-from sampler import RASampler
+
 from torch import nn
 from torch.utils.data.dataloader import default_collate
-from torchvision.transforms.functional import InterpolationMode
 from transforms import get_mixup_cutmix
 from train import train_one_epoch
 from val import evaluate
 import torch.nn as nn
-from torchsummary import summary
+
 from my_project.src.tasks.classification.src.models.torchvision_model import TorchvisionModel
+from my_project.src.tasks.classification.src.dataset import load_data
+from my_project.utils.general import mkdir
+from my_project.utils.torch_utils import *
 
-
-def _get_cache_path(filepath):
-    import hashlib
-
-    h = hashlib.sha1(filepath.encode()).hexdigest()
-    cache_path = os.path.join("~", ".torch", "vision", "datasets", "imagefolder", h[:10] + ".pt")
-    cache_path = os.path.expanduser(cache_path)
-    return cache_path
-
-def load_data(traindir, valdir, args):
-    # Data loading code
-    print("Loading data")
-    val_resize_size, val_crop_size, train_crop_size = (
-        args.val_resize_size,
-        args.val_crop_size,
-        args.train_crop_size,
-    )
-    interpolation = InterpolationMode(args.interpolation)
-
-    print("Loading training data")
-    st = time.time()
-    cache_path = _get_cache_path(traindir)
-    if args.cache_dataset and os.path.exists(cache_path):
-        # Attention, as the transforms are also cached!
-        print(f"Loading dataset_train from {cache_path}")
-        # TODO: this could probably be weights_only=True
-        dataset, _ = torch.load(cache_path, weights_only=False)
-    else:
-        # We need a default value for the variables below because args may come
-        # from train_quantization.py which doesn't define them.
-        auto_augment_policy = getattr(args, "auto_augment", None)
-        random_erase_prob = getattr(args, "random_erase", 0.0)
-        ra_magnitude = getattr(args, "ra_magnitude", None)
-        augmix_severity = getattr(args, "augmix_severity", None)
-        if args.dataset == 'mnist':
-            dataset = torchvision.datasets.MNIST('/tmp/', train=True, download=True,
-                             transform=torchvision.transforms.Compose([
-                               torchvision.transforms.ToTensor(),
-                               torchvision.transforms.Normalize(
-                                 (0.1307,), (0.3081,))
-                             ]))
-            
-        else:
-            dataset = torchvision.datasets.ImageFolder(
-                traindir,
-                presets.ClassificationPresetTrain(
-                    crop_size=train_crop_size,
-                    interpolation=interpolation,
-                    auto_augment_policy=auto_augment_policy,
-                    random_erase_prob=random_erase_prob,
-                    ra_magnitude=ra_magnitude,
-                    augmix_severity=augmix_severity,
-                    backend=args.backend,
-                    use_v2=args.use_v2,
-                ),
-            )        
-    
-        if args.cache_dataset:
-            print(f"Saving dataset_train to {cache_path}")
-            utils.mkdir(os.path.dirname(cache_path))
-            utils.save_on_master((dataset, traindir), cache_path)
-    print("Took", time.time() - st)
-
-    print("Loading validation data")
-    cache_path = _get_cache_path(valdir)
-    if args.cache_dataset and os.path.exists(cache_path):
-        # Attention, as the transforms are also cached!
-        print(f"Loading dataset_test from {cache_path}")
-        # TODO: this could probably be weights_only=True
-        dataset_test, _ = torch.load(cache_path, weights_only=False)
-    else:
-        if args.weights and args.test_only:
-            weights = torchvision.models.get_weight(args.weights)
-            preprocessing = weights.transforms(antialias=True)
-            if args.backend == "tensor":
-                preprocessing = torchvision.transforms.Compose([torchvision.transforms.PILToTensor(), preprocessing])
-
-        else:
-            preprocessing = presets.ClassificationPresetEval(
-                crop_size=val_crop_size,
-                resize_size=val_resize_size,
-                interpolation=interpolation,
-                backend=args.backend,
-                use_v2=args.use_v2,
-            )
-
-        if args.dataset == 'mnist':
-            dataset_test = torchvision.datasets.MNIST('/tmp/', train=False, download=True,
-                             transform=torchvision.transforms.Compose([
-                               torchvision.transforms.ToTensor(),
-                               torchvision.transforms.Normalize(
-                                 (0.1307,), (0.3081,))
-                             ]))
-        else:
-            dataset_test = torchvision.datasets.ImageFolder(
-                                valdir,
-                                preprocessing,
-                            )
-        
-        if args.cache_dataset:
-            print(f"Saving dataset_test to {cache_path}")
-            utils.mkdir(os.path.dirname(cache_path))
-            utils.save_on_master((dataset_test, valdir), cache_path)
-
-    print("Creating data loaders")
-    if args.distributed:
-        if hasattr(args, "ra_sampler") and args.ra_sampler:
-            train_sampler = RASampler(dataset, shuffle=True, repetitions=args.ra_reps)
-        else:
-            train_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
-        test_sampler = torch.utils.data.distributed.DistributedSampler(dataset_test, shuffle=False)
-    else:
-        train_sampler = torch.utils.data.RandomSampler(dataset)
-        test_sampler = torch.utils.data.SequentialSampler(dataset_test)
-
-    return dataset, dataset_test, train_sampler, test_sampler
-
-def main(args):
-    if args.output_dir:
-        utils.mkdir(args.output_dir)
-
-    utils.init_distributed_mode(args)
-    print(args)
-
-    device = torch.device(args.device)
-
-    if args.use_deterministic_algorithms:
-        torch.backends.cudnn.benchmark = False
-        torch.use_deterministic_algorithms(True)
-    else:
-        torch.backends.cudnn.benchmark = True
-
+def get_dataset(args):
     train_dir = os.path.join(args.data_path, "train")
     val_dir = os.path.join(args.data_path, "val")
     dataset, dataset_test, train_sampler, test_sampler = load_data(train_dir, val_dir, args)
+
+    return dataset, dataset_test, train_sampler, test_sampler
+
+def get_dataloader(args, dataset, train_sampler, dataset_test, test_sampler):
 
     num_classes = len(dataset.classes)
     mixup_cutmix = get_mixup_cutmix(
         mixup_alpha=args.mixup_alpha, cutmix_alpha=args.cutmix_alpha, num_categories=num_classes, use_v2=args.use_v2
     )
     if mixup_cutmix is not None:
-
         def collate_fn(batch):
             return mixup_cutmix(*default_collate(batch))
-
     else:
         collate_fn = default_collate
 
@@ -181,55 +50,9 @@ def main(args):
         sampler=test_sampler, num_workers=args.workers, pin_memory=True,
     )
 
+    return data_loader, data_loader_test
 
-    print("Creating model")
-    model = TorchvisionModel(args.model, args.in_channels, args.num_classes)
-    # model = torchvision.models.get_model(args.model, weights=args.weights, num_classes=num_classes)
-    # print(model)
-    # model.conv1 = nn.Conv2d(1, 64 ,kernel_size=7, stride=2, padding=3, bias=False)
-    # num_ftrs = model.fc.in_features 
-    # model.fc = nn.Linear(num_ftrs, num_classes)
-
-    model.to(device)
-        
-
-    if args.distributed and args.sync_bn:
-        model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
-
-    criterion = nn.CrossEntropyLoss(label_smoothing=args.label_smoothing)
-
-    custom_keys_weight_decay = []
-    if args.bias_weight_decay is not None:
-        custom_keys_weight_decay.append(("bias", args.bias_weight_decay))
-    if args.transformer_embedding_decay is not None:
-        for key in ["class_token", "position_embedding", "relative_position_bias_table"]:
-            custom_keys_weight_decay.append((key, args.transformer_embedding_decay))
-    parameters = utils.set_weight_decay(
-        model,
-        args.weight_decay,
-        norm_weight_decay=args.norm_weight_decay,
-        custom_keys_weight_decay=custom_keys_weight_decay if len(custom_keys_weight_decay) > 0 else None,
-    )
-
-    opt_name = args.opt.lower()
-    if opt_name.startswith("sgd"):
-        optimizer = torch.optim.SGD(
-            parameters,
-            lr=args.lr,
-            momentum=args.momentum,
-            weight_decay=args.weight_decay,
-            nesterov="nesterov" in opt_name,
-        )
-    elif opt_name == "rmsprop":
-        optimizer = torch.optim.RMSprop(
-            parameters, lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay, eps=0.0316, alpha=0.9
-        )
-    elif opt_name == "adamw":
-        optimizer = torch.optim.AdamW(parameters, lr=args.lr, weight_decay=args.weight_decay)
-    else:
-        raise RuntimeError(f"Invalid optimizer {args.opt}. Only SGD, RMSprop and AdamW are supported.")
-
-    scaler = torch.cuda.amp.GradScaler() if args.amp else None
+def get_lr_scheduler(args, optimizer):
 
     args.lr_scheduler = args.lr_scheduler.lower()
     if args.lr_scheduler == "steplr":
@@ -265,6 +88,61 @@ def main(args):
     else:
         lr_scheduler = main_lr_scheduler
 
+    return lr_scheduler
+
+def main(args):
+    if args.output_dir:
+        mkdir(args.output_dir)
+
+    device = set_envs(args)
+
+    dataset, dataset_test, train_sampler, test_sampler = get_dataset(args)
+    data_loader, data_loader_test = get_dataloader(args, dataset, train_sampler, dataset_test, test_sampler)
+
+    print("Creating model")
+    model = TorchvisionModel(args.model, args.in_channels, args.num_classes)
+    model.to(device)
+        
+    if args.distributed and args.sync_bn:
+        model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
+
+    criterion = nn.CrossEntropyLoss(label_smoothing=args.label_smoothing)
+
+    custom_keys_weight_decay = []
+    if args.bias_weight_decay is not None:
+        custom_keys_weight_decay.append(("bias", args.bias_weight_decay))
+    if args.transformer_embedding_decay is not None:
+        for key in ["class_token", "position_embedding", "relative_position_bias_table"]:
+            custom_keys_weight_decay.append((key, args.transformer_embedding_decay))
+    parameters = set_weight_decay(
+        model,
+        args.weight_decay,
+        norm_weight_decay=args.norm_weight_decay,
+        custom_keys_weight_decay=custom_keys_weight_decay if len(custom_keys_weight_decay) > 0 else None,
+    )
+
+    opt_name = args.opt.lower()
+    if opt_name.startswith("sgd"):
+        optimizer = torch.optim.SGD(
+            parameters,
+            lr=args.lr,
+            momentum=args.momentum,
+            weight_decay=args.weight_decay,
+            nesterov="nesterov" in opt_name,
+        )
+    elif opt_name == "rmsprop":
+        optimizer = torch.optim.RMSprop(
+            parameters, lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay, eps=0.0316, alpha=0.9
+        )
+    elif opt_name == "adamw":
+        optimizer = torch.optim.AdamW(parameters, lr=args.lr, weight_decay=args.weight_decay)
+    else:
+        raise RuntimeError(f"Invalid optimizer {args.opt}. Only SGD, RMSprop and AdamW are supported.")
+
+    scaler = torch.cuda.amp.GradScaler() if args.amp else None
+
+    lr_scheduler = get_lr_scheduler(args, optimizer)
+
     model_without_ddp = model
     if args.distributed:
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
@@ -281,7 +159,7 @@ def main(args):
         adjust = args.world_size * args.batch_size * args.model_ema_steps / args.epochs
         alpha = 1.0 - args.model_ema_decay
         alpha = min(1.0, alpha * adjust)
-        model_ema = utils.ExponentialMovingAverage(model_without_ddp, device=device, decay=1.0 - alpha)
+        model_ema = ExponentialMovingAverage(model_without_ddp, device=device, decay=1.0 - alpha)
 
     if args.resume:
         checkpoint = torch.load(args.resume, map_location="cpu", weights_only=True)
@@ -327,8 +205,8 @@ def main(args):
                 checkpoint["model_ema"] = model_ema.state_dict()
             if scaler:
                 checkpoint["scaler"] = scaler.state_dict()
-            utils.save_on_master(checkpoint, os.path.join(args.output_dir, f"model_{epoch}.pth"))
-            utils.save_on_master(checkpoint, os.path.join(args.output_dir, "checkpoint.pth"))
+            set_envssave_on_master(checkpoint, os.path.join(args.output_dir, f"model_{epoch}.pth"))
+            set_envssave_on_master(checkpoint, os.path.join(args.output_dir, "checkpoint.pth"))
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
