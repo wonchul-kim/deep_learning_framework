@@ -7,7 +7,7 @@ import torch.utils.data
 
 from torch import nn
 from torch.utils.data.dataloader import default_collate
-from dl_framework.src.tasks.data.augment.transforms import get_mixup_cutmix
+from dl_framework.src.data.augment.transforms import get_mixup_cutmix
 from dl_framework.src.tasks.classification.src.train import train_one_epoch
 from dl_framework.src.tasks.classification.src.val import val
 import torch.nn as nn

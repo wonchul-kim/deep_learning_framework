@@ -7,7 +7,7 @@ import torchvision
 import torchvision.transforms
 
 from dl_framework.src.tasks.classification.src.sampler import RASampler
-import dl_framework.src.tasks.data.augment.presets as presets
+import dl_framework.src.data.augment.presets as presets
 import dl_framework.src.tasks.classification.utils as utils
 from torchvision.transforms.functional import InterpolationMode
 
