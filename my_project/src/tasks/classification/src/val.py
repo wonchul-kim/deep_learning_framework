@@ -7,7 +7,7 @@ import utils
 from my_project.utils.metrics import MetricLogger, accuracy, reduce_across_processes
 
 
-def evaluate(model, criterion, data_loader, device, print_freq=100, log_suffix=""):
+def val(model, criterion, data_loader, device, print_freq=100, log_suffix=""):
     model.eval()
     metric_logger = MetricLogger(delimiter="  ")
     header = f"Test: {log_suffix}"

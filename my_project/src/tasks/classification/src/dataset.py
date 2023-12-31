@@ -6,8 +6,8 @@ import torch
 import torchvision
 import torchvision.transforms
 
-from my_project.src.tasks.classification.sampler import RASampler
-import my_project.src.tasks.classification.presets as presets
+from my_project.src.tasks.classification.src.sampler import RASampler
+import my_project.src.tasks.data.augment.presets as presets
 import my_project.src.tasks.classification.utils as utils
 from torchvision.transforms.functional import InterpolationMode
 

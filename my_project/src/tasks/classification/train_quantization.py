@@ -9,7 +9,7 @@ import torch.utils.data
 import torchvision
 import utils
 from torch import nn
-from train import evaluate, load_data, train_one_epoch
+from my_project.src.tasks.classification.src.train import val, load_data, train_one_epoch
 
 
 def main(args):
@@ -93,18 +93,18 @@ def main(args):
         torch.ao.quantization.prepare(model, inplace=True)
         # Calibrate first
         print("Calibrating")
-        evaluate(model, criterion, data_loader_calibration, device=device, print_freq=1)
+        val(model, criterion, data_loader_calibration, device=device, print_freq=1)
         torch.ao.quantization.convert(model, inplace=True)
         if args.output_dir:
             print("Saving quantized model")
             if utils.is_main_process():
                 torch.save(model.state_dict(), os.path.join(args.output_dir, "quantized_post_train_model.pth"))
         print("Evaluating post-training quantized model")
-        evaluate(model, criterion, data_loader_test, device=device)
+        val(model, criterion, data_loader_test, device=device)
         return
 
     if args.test_only:
-        evaluate(model, criterion, data_loader_test, device=device)
+        val(model, criterion, data_loader_test, device=device)
         return
 
     model.apply(torch.ao.quantization.enable_observer)
@@ -125,14 +125,14 @@ def main(args):
                 model.apply(torch.nn.intrinsic.qat.freeze_bn_stats)
             print("Evaluate QAT model")
 
-            evaluate(model, criterion, data_loader_test, device=device, log_suffix="QAT")
+            val(model, criterion, data_loader_test, device=device, log_suffix="QAT")
             quantized_eval_model = copy.deepcopy(model_without_ddp)
             quantized_eval_model.eval()
             quantized_eval_model.to(torch.device("cpu"))
             torch.ao.quantization.convert(quantized_eval_model, inplace=True)
 
             print("Evaluate Quantized model")
-            evaluate(quantized_eval_model, criterion, data_loader_test, device=torch.device("cpu"))
+            val(quantized_eval_model, criterion, data_loader_test, device=torch.device("cpu"))
 
         model.train()
 
