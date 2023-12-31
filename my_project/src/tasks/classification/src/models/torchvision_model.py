@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 import torchvision 
 
@@ -11,6 +12,9 @@ class TorchvisionModel(nn.Module):
 
     def forward(self, x):
         return self.model(x)
+    
+    def load_weights(self, weights):
+        self.model.load_state_dict(torch.load(weights)['model'])
 
 if __name__ == '__main__':
     model = TorchvisionModel('resnet18', 1, 10)
