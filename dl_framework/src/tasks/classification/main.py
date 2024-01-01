@@ -17,6 +17,9 @@ from dl_framework.src.tasks.classification.src.dataset import load_data
 from dl_framework.utils.general import mkdir
 from dl_framework.utils.torch_utils import *
 from dl_framework.src.tasks.classification.parse import get_args_parser
+from dl_framework.src.tasks.classification.src.lr_scheduler import get_lr_scheduler
+from dl_framework.src.tasks.classification.src.dataloader import get_dataloader
+
 
 def get_dataset(args):
     train_dir = os.path.join(args.input_dir, "train")
@@ -25,70 +28,6 @@ def get_dataset(args):
 
     return dataset, dataset_test, train_sampler, test_sampler
 
-def get_dataloader(args, dataset, train_sampler, dataset_test, test_sampler):
-
-    num_classes = len(dataset.classes)
-    mixup_cutmix = get_mixup_cutmix(
-        mixup_alpha=args.mixup_alpha, cutmix_alpha=args.cutmix_alpha, num_categories=num_classes, use_v2=args.use_v2
-    )
-    if mixup_cutmix is not None:
-        def collate_fn(batch):
-            return mixup_cutmix(*default_collate(batch))
-    else:
-        collate_fn = default_collate
-
-    data_loader = torch.utils.data.DataLoader(
-        dataset,
-        batch_size=args.batch_size,
-        sampler=train_sampler,
-        num_workers=args.workers,
-        pin_memory=True,
-        collate_fn=collate_fn,
-    )
-    data_loader_test = torch.utils.data.DataLoader(
-        dataset_test, batch_size=args.batch_size, 
-        sampler=test_sampler, num_workers=args.workers, pin_memory=True,
-    )
-
-    return data_loader, data_loader_test
-
-def get_lr_scheduler(args, optimizer):
-
-    args.lr_scheduler = args.lr_scheduler.lower()
-    if args.lr_scheduler == "steplr":
-        main_lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.lr_step_size, gamma=args.lr_gamma)
-    elif args.lr_scheduler == "cosineannealinglr":
-        main_lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-            optimizer, T_max=args.epochs - args.lr_warmup_epochs, eta_min=args.lr_min
-        )
-    elif args.lr_scheduler == "exponentiallr":
-        main_lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=args.lr_gamma)
-    else:
-        raise RuntimeError(
-            f"Invalid lr scheduler '{args.lr_scheduler}'. Only StepLR, CosineAnnealingLR and ExponentialLR "
-            "are supported."
-        )
-
-    if args.lr_warmup_epochs > 0:
-        if args.lr_warmup_method == "linear":
-            warmup_lr_scheduler = torch.optim.lr_scheduler.LinearLR(
-                optimizer, start_factor=args.lr_warmup_decay, total_iters=args.lr_warmup_epochs
-            )
-        elif args.lr_warmup_method == "constant":
-            warmup_lr_scheduler = torch.optim.lr_scheduler.ConstantLR(
-                optimizer, factor=args.lr_warmup_decay, total_iters=args.lr_warmup_epochs
-            )
-        else:
-            raise RuntimeError(
-                f"Invalid warmup lr method '{args.lr_warmup_method}'. Only linear and constant are supported."
-            )
-        lr_scheduler = torch.optim.lr_scheduler.SequentialLR(
-            optimizer, schedulers=[warmup_lr_scheduler, main_lr_scheduler], milestones=[args.lr_warmup_epochs]
-        )
-    else:
-        lr_scheduler = main_lr_scheduler
-
-    return lr_scheduler
 
 def main(args):
     if args.output_dir:
