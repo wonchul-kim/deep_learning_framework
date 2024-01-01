@@ -1,6 +1,5 @@
 import os.path as osp
 import time
-import warnings
 
 import torch
 import torchvision
@@ -8,8 +7,9 @@ import torchvision.transforms
 
 from dl_framework.src.tasks.classification.src.sampler import RASampler
 import dl_framework.src.data.augment.presets as presets
-import dl_framework.src.tasks.classification.utils as utils
 from torchvision.transforms.functional import InterpolationMode
+from dl_framework.utils.torch_utils import *
+from dl_framework.utils.general import *
 
 def _get_cache_path(filepath):
     import hashlib
@@ -69,8 +69,8 @@ def load_data(traindir, valdir, args):
     
         if args.cache_dataset:
             print(f"Saving dataset_train to {cache_path}")
-            utils.mkdir(os.path.dirname(cache_path))
-            utils.save_on_master((dataset, traindir), cache_path)
+            mkdir(os.path.dirname(cache_path))
+            save_on_master((dataset, traindir), cache_path)
     print("Took", time.time() - st)
 
     print("Loading validation data")
@@ -111,8 +111,8 @@ def load_data(traindir, valdir, args):
         
         if args.cache_dataset:
             print(f"Saving dataset_test to {cache_path}")
-            utils.mkdir(osp.dirname(cache_path))
-            utils.save_on_master((dataset_test, valdir), cache_path)
+            mkdir(osp.dirname(cache_path))
+            save_on_master((dataset_test, valdir), cache_path)
 
     print("Creating data loaders")
     if args.distributed:

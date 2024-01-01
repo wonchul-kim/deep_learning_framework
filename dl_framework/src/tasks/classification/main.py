@@ -19,8 +19,8 @@ from dl_framework.utils.torch_utils import *
 from dl_framework.src.tasks.classification.parse import get_args_parser
 
 def get_dataset(args):
-    train_dir = os.path.join(args.data_path, "train")
-    val_dir = os.path.join(args.data_path, "val")
+    train_dir = os.path.join(args.input_dir, "train")
+    val_dir = os.path.join(args.input_dir, "val")
     dataset, dataset_test, train_sampler, test_sampler = load_data(train_dir, val_dir, args)
 
     return dataset, dataset_test, train_sampler, test_sampler
@@ -91,6 +91,9 @@ def get_lr_scheduler(args, optimizer):
     return lr_scheduler
 
 def main(args):
+    if args.output_dir:
+        mkdir(args.output_dir)
+    args.output_dir += '/classification'
     if args.output_dir:
         mkdir(args.output_dir)
 
