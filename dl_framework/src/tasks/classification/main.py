@@ -12,7 +12,7 @@ from dl_framework.src.tasks.classification.src.train import train_one_epoch
 from dl_framework.src.tasks.classification.src.val import val
 import torch.nn as nn
 
-from dl_framework.src.tasks.classification.src.models.torchvision_model import TorchvisionModel
+from dl_framework.src.tasks.classification.src.models.from_torchvision.torchvision_model import TorchvisionModel
 from dl_framework.src.tasks.classification.src.dataset import load_data
 from dl_framework.utils.general import mkdir
 from dl_framework.utils.torch_utils import *

@@ -1,2 +1,2 @@
-from .torchvision_model import *
+from .from_torchvision.torchvision_model import *
 

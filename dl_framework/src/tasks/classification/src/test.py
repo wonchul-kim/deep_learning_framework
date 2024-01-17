@@ -8,7 +8,7 @@ import torch.utils.data
 import utils
 
 import torchvision
-from dl_framework.src.tasks.classification.src.models.torchvision_model import TorchvisionModel
+from dl_framework.src.tasks.classification.src.models.from_torchvision.torchvision_model import TorchvisionModel
 
 def test():
     model_name = 'resnet18'
