@@ -134,6 +134,8 @@ class ViT(nn.Sequential):
             TransformerEncoder(depth, emb_size=emb_size, **kwargs),
             ClassificationHead(emb_size, num_classes)
         )
+        
+        
 x = torch.randn((1, 3, 224, 224))
 
 patch_size = 16
